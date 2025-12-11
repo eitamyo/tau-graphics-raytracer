@@ -24,11 +24,14 @@ def parse_scene_file(file_path):
             obj_type = parts[0]
             params = [float(p) for p in parts[1:]]
             if obj_type == "cam":
-                camera = Camera(params[:3], params[3:6], params[6:9], params[9], params[10])
+                camera = Camera(params[:3], params[3:6],
+                                params[6:9], params[9], params[10])
             elif obj_type == "set":
-                scene_settings = SceneSettings(params[:3], params[3], params[4])
+                scene_settings = SceneSettings(
+                    params[:3], params[3], params[4])
             elif obj_type == "mtl":
-                material = Material(params[:3], params[3:6], params[6:9], params[9], params[10])
+                material = Material(
+                    params[:3], params[3:6], params[6:9], params[9], params[10])
                 objects.append(material)
             elif obj_type == "sph":
                 sphere = Sphere(params[:3], params[3], int(params[4]))
@@ -40,25 +43,58 @@ def parse_scene_file(file_path):
                 cube = Cube(params[:3], params[3], int(params[4]))
                 objects.append(cube)
             elif obj_type == "lgt":
-                light = Light(params[:3], params[3:6], params[6], params[7], params[8])
+                light = Light(params[:3], params[3:6],
+                              params[6], params[7], params[8])
                 objects.append(light)
             else:
                 raise ValueError("Unknown object type: {}".format(obj_type))
     return camera, scene_settings, objects
 
 
-def save_image(image_array):
+def save_image(image_array, output_path):
     image = Image.fromarray(np.uint8(image_array))
 
     # Save the image to a file
-    image.save("scenes/Spheres.png")
+    image.save(output_path)
+
+def get_pixel_direction(x, y, camera, image_width, image_height):
+    aspect_ratio = image_width / image_height
+    screen_height = camera.screen_width / aspect_ratio
+
+    x_centered = (x + 0.5) - (image_width / 2)
+    y_centered = (y + 0.5) - (image_height / 2)
+
+    pixel_scale_x = camera.screen_width / image_width
+    pixel_scale_y = screen_height / image_height
+
+    pixel_point = [
+        camera.screen_center[i] + (x_centered * pixel_scale_x * camera.right_vector[i]) - (
+            y_centered * pixel_scale_y * camera.up_vector[i])
+        for i in range(3)
+    ]
+
+    ray_direction = [pixel_point[i] - camera.position[i] for i in range(3)]
+
+    norm = sum([d**2 for d in ray_direction]) ** 0.5
+    ray_direction = [d / norm for d in ray_direction]
+
+    return ray_direction
+
+def get_color_for_ray(ray_origin, ray_direction, surfaces, materials, lights, scene_settings):
+    # Placeholder for actual ray tracing logic
+    # For now, return a gradient based on the ray direction
+    r = int((ray_direction[0] + 1) / 2 * 255)
+    g = int((ray_direction[1] + 1) / 2 * 255)
+    b = int((ray_direction[2] + 1) / 2 * 255)
+    return [r, g, b]
 
 
 def main():
     # python ray_tracer.py scenes/pool.txt output/pool.png −−width 500 −−height 500
     parser = argparse.ArgumentParser(description='Python Ray Tracer')
     parser.add_argument('scene_file', type=str, help='Path to the scene file')
-    parser.add_argument('output_image', type=str, help='Name of the output image file')
+    parser.add_argument('output_image', type=str,
+                        help='Name of the output image file')
     parser.add_argument('--width', type=int, default=500, help='Image width')
     parser.add_argument('--height', type=int, default=500, help='Image height')
     args = parser.parse_args()
@@ -66,28 +102,25 @@ def main():
     # Parse the scene file
     camera, scene_settings, objects = parse_scene_file(args.scene_file)
 
-    # TODO: Implement the ray tracer
-    # 1. Shoot a ray through each pixel in the image.
-    # For each pixel, you should:
-    # 1.1. Discover the location of the pixel on the camera’s screen (using camera parameters).
-    # 1.2. Construct a ray from the camera through that pixel.
-    # 2. Check the intersection of the ray with all surfaces in the scene (you can add
-    # optimizations such as BSP trees if you wish but they are not mandatory).
-    # 3. Find the nearest intersection of the ray. This is the surface that will be
-    # seen in the image.
-    # 4. Compute the color of the surface:
-    # 4.1. Go over each light in the scene.
-    # 4.2. Add the value it induces on the surface.
-    # 5. Find out whether the light hits the surface or not:
-    # 5.1. Shoot rays from the light towards the surface
-    
+    lights = [obj for obj in objects if isinstance(obj, Light)]
+    materials = [obj for obj in objects if isinstance(obj, Material)]
+    surfaces = [obj for obj in objects if isinstance(
+        obj, (Sphere, InfinitePlane, Cube))]
 
-
-    # Dummy result
+    # Result
     image_array = np.zeros((500, 500, 3))
+    # Rendering loop
+    for y in range(args.height):
+        for x in range(args.width):
+            # Compute ray direction for pixel (x, y)
+            pixel_direction = get_pixel_direction(
+                x, y, camera, args.width, args.height)
+            pixel_color = get_color_for_ray(camera.position, pixel_direction,
+                                           surfaces, materials, lights, scene_settings)
+            image_array[y, x] = pixel_color
 
     # Save the output image
-    save_image(image_array)
+    save_image(image_array, args.output_image)
 
 
 if __name__ == '__main__':
