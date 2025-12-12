@@ -1,0 +1,19 @@
+# Plane Test: Floor and Sphere
+cam		0	2	5	0	0	0	0	1	0	1	2
+
+# Settings: Dark Blue BG, 4x4 shadow rays (softish shadows)
+set		0	0	0.2	4		3
+
+# Mat 1 (Gray Floor):
+mtl		0.5	0.5	0.5	0	0	0	0	0	0	10	0
+# Mat 2 (Green Sphere):
+mtl		0	1	0	0.5	0.5	0.5	0	0	0	50	0
+
+# Plane: Normal(0,1,0), Offset -1 (Floor at Y=-1)
+pln		0	1	0	-1	1
+
+# Sphere
+sph		0	0	0	1	2
+
+# Light
+lgt		3	5	3	1	1	1	1	1	0.5

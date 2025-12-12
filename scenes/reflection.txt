@@ -1,0 +1,17 @@
+# Reflection Test
+cam		0	0	5	0	0	0	0	1	0	1	2
+
+set		0	0	0	1		5
+
+# Mat 1 (Mirror): High reflection (0.8), low diffuse
+mtl		0.1	0.1	0.1	1	1	1	0.8	0.8	0.8	100	0
+# Mat 2 (Red):
+mtl		1	0	0	0.5	0.5	0.5	0	0	0	10	0
+
+# Sphere 1 (Mirror) - Left
+sph		-1.2	0	0	1	1
+
+# Sphere 2 (Red) - Right
+sph		1.2	0	0	1	2
+
+lgt		0	5	5	1	1	1	1	1	0.5

@@ -1,0 +1,17 @@
+# Transparency Test
+cam		0	0	6	0	0	0	0	1	0	1	2
+
+set		0.5	0.8	1	1		5
+
+# Mat 1 (Glass): High transparency (0.8), some specular
+mtl		0	0	0	1	1	1	0.1	0.1	0.1	100	0.8
+# Mat 2 (Red Solid):
+mtl		1	0	0	0.5	0.5	0.5	0	0	0	10	0
+
+# Sphere 1 (Glass) - Front
+sph		0	0	2	1	1
+
+# Sphere 2 (Red) - Back
+sph		0	0	-2	1	2
+
+lgt		2	5	5	1	1	1	1	1	0.5
