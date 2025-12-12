@@ -1,13 +1,20 @@
+def cross(a, b):
+    c = [a[1]*b[2] - a[2]*b[1],
+         a[2]*b[0] - a[0]*b[2],
+         a[0]*b[1] - a[1]*b[0]]
+
+    return c
+
 def get_forward_vector(cam):
     forward = [cam.look_at[i] - cam.position[i] for i in range(3)]
     return normalize(forward)
 
 def get_right_vector(cam):
-    right = [cam.up_vector[i] - cam.position[i] for i in range(3)]
+    right = cross(cam.forward_vector, cam.up_vector)
     return normalize(right)
 
-def get_up_vector(cam):
-    up = [cam.up_vector[i] - cam.position[i] for i in range(3)]
+def get_true_up_vector(cam):
+    up = cross(cam.right_vector, cam.forward_vector)
     return normalize(up)
 
 def get_screen_center(cam):
@@ -28,5 +35,5 @@ class Camera:
         self.screen_width = screen_width
         self.forward_vector = get_forward_vector(self)
         self.right_vector = get_right_vector(self)
-        self.up_vector = get_up_vector(self)
+        self.true_up_vector = get_true_up_vector(self)
         self.screen_center = get_screen_center(self)

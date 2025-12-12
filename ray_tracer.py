@@ -69,7 +69,7 @@ def get_pixel_direction(x, y, camera, image_width, image_height):
 
     pixel_point = [
         camera.screen_center[i] + (x_centered * pixel_scale_x * camera.right_vector[i]) - (
-            y_centered * pixel_scale_y * camera.up_vector[i])
+            y_centered * pixel_scale_y * camera.true_up_vector[i])
         for i in range(3)
     ]
 
@@ -81,13 +81,23 @@ def get_pixel_direction(x, y, camera, image_width, image_height):
     return ray_direction
 
 def get_color_for_ray(ray_origin, ray_direction, surfaces, materials, lights, scene_settings):
-    # Placeholder for actual ray tracing logic
-    # For now, return a gradient based on the ray direction
-    r = int((ray_direction[0] + 1) / 2 * 255)
-    g = int((ray_direction[1] + 1) / 2 * 255)
-    b = int((ray_direction[2] + 1) / 2 * 255)
-    return [r, g, b]
-
+    hit_surface = None
+    min_t = float('inf')
+    for surface in surfaces:
+        t = surface.intersect(ray_origin, ray_direction)
+        if t is not None and t < min_t:
+            min_t = t
+            hit_surface = surface
+    if hit_surface is None:
+        return scene_settings.background_color
+    # Placeholder: return the diffuse color of the first intersected surface
+    # TODO: Implement full shading model
+    material = materials[hit_surface.material_index - 1]
+    color = [c * 255 for c in material.diffuse_color]
+    # if isinstance(hit_surface, Sphere):
+    #     print("Hit sphere at t =", min_t, "with material color =", color)
+    # print("Hit surface:", hit_surface, "with material color =", material.diffuse_color)
+    return color
 
 def main():
     # python ray_tracer.py scenes/pool.txt output/pool.png −−width 500 −−height 500
@@ -112,7 +122,6 @@ def main():
     # Rendering loop
     for y in range(args.height):
         for x in range(args.width):
-            # Compute ray direction for pixel (x, y)
             pixel_direction = get_pixel_direction(
                 x, y, camera, args.width, args.height)
             pixel_color = get_color_for_ray(camera.position, pixel_direction,
