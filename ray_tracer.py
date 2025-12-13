@@ -9,6 +9,7 @@ from scene_settings import SceneSettings
 from surfaces.cube import Cube
 from surfaces.infinite_plane import InfinitePlane
 from surfaces.sphere import Sphere
+from vectors import normalize, cross, dot
 
 
 def parse_scene_file(file_path):
@@ -57,6 +58,7 @@ def save_image(image_array, output_path):
     # Save the image to a file
     image.save(output_path)
 
+
 def get_pixel_direction(x, y, camera, image_width, image_height):
     aspect_ratio = image_width / image_height
     screen_height = camera.screen_width / aspect_ratio
@@ -73,14 +75,44 @@ def get_pixel_direction(x, y, camera, image_width, image_height):
         for i in range(3)
     ]
 
-    ray_direction = [pixel_point[i] - camera.position[i] for i in range(3)]
-
-    norm = sum([d**2 for d in ray_direction]) ** 0.5
-    ray_direction = [d / norm for d in ray_direction]
+    ray_direction = normalize(
+        [pixel_point[i] - camera.position[i] for i in range(3)])
 
     return ray_direction
 
-def get_color_for_ray(ray_origin, ray_direction, surfaces, materials, lights, scene_settings):
+
+def compute_light_intensity(hit_surface, point, light: Light, light_dir, surfaces, num_shadow_rays):
+    # find perpendicular vectors to light_dir
+    up = [0, 1, 0] if abs(light_dir[1]) < 0.9 else [1, 0, 0]
+    right = normalize(cross(light_dir, up))
+
+    # divide into a square grid of cells centered around the light, with size light.radius
+    cell_size = (2 * light.radius) / num_shadow_rays
+    rays_hit = 0
+    for i in range(num_shadow_rays):
+        for j in range(num_shadow_rays):
+            # select a random point in the cell
+            offset_x = (i + np.random.rand()) * cell_size - light.radius
+            offset_y = (j + np.random.rand()) * cell_size - light.radius
+
+            shadow_ray_origin = [light.position[i] + offset_x *
+                                 right[i] + offset_y * up[i] for i in range(3)]
+            shadow_ray_dir = normalize(
+                [point[i] - shadow_ray_origin[i] for i in range(3)])
+
+            for surface in surfaces:
+                if surface == hit_surface:
+                    continue
+                t = surface.intersect(shadow_ray_origin, shadow_ray_dir)
+                if t is not None:
+                    break  # in shadow
+            else:
+                rays_hit += 1  # not in shadow
+
+    return (1 - light.shadow_intensity) + light.shadow_intensity * rays_hit / (num_shadow_rays * num_shadow_rays)
+
+
+def get_color_for_ray(ray_origin, ray_direction, surfaces, materials: list[Material], lights: list[Light], scene_settings: SceneSettings):
     hit_surface = None
     min_t = float('inf')
     for surface in surfaces:
@@ -92,12 +124,46 @@ def get_color_for_ray(ray_origin, ray_direction, surfaces, materials, lights, sc
         return scene_settings.background_color
     # Placeholder: return the diffuse color of the first intersected surface
     # TODO: Implement full shading model
-    material = materials[hit_surface.material_index - 1]
-    color = [c * 255 for c in material.diffuse_color]
-    # if isinstance(hit_surface, Sphere):
-    #     print("Hit sphere at t =", min_t, "with material color =", color)
-    # print("Hit surface:", hit_surface, "with material color =", material.diffuse_color)
-    return color
+    material: Material = materials[hit_surface.material_index - 1]
+    hit_point = [ray_origin[i] + min_t * ray_direction[i] for i in range(3)]
+    normal = hit_surface.get_normal(hit_point)
+
+    diffuse_total = [0.0, 0.0, 0.0]
+    specural_total = [0.0, 0.0, 0.0]
+    for light in lights:
+        light_dir = normalize([light.position[i] - hit_point[i]
+                              for i in range(3)])
+
+        # Soft shadows
+        light_intensity = compute_light_intensity(
+            hit_surface, hit_point, light, light_dir, surfaces, scene_settings.root_number_shadow_rays)
+
+        d = max(dot(normal, light_dir), 0.0)
+        diffuse_component = [d * \
+            light_intensity * material.diffuse_color[i] * light.color[i] for i in range(3)]
+
+        diffuse_total = [diffuse_total[i] + diffuse_component[i]
+                         for i in range(3)]
+
+        reflection_dir = normalize(
+            [2 * dot(normal, light_dir) * normal[i] - light_dir[i] for i in range(3)])
+        view_dir = normalize([ray_origin[i] - hit_point[i] for i in range(3)])
+        s = max(dot(reflection_dir, view_dir), 0.0) ** material.shininess
+        specular_component = [s * material.specular_color[i] * light.color[i] * light_intensity for i in range(3)]
+
+        specural_total = [specural_total[i] +
+                          specular_component[i] for i in range(3)]
+
+    final_color = [0.0, 0.0, 0.0]
+    for i in range(3):
+        surface_color_i = (diffuse_total[i] + specural_total[i]) * \
+            (1-material.transparency)
+        final_color[i] = scene_settings.background_color[i] * \
+            material.transparency + surface_color_i + \
+            material.reflection_color[i]
+
+    return final_color
+
 
 def main():
     # python ray_tracer.py scenes/pool.txt output/pool.png −−width 500 −−height 500
@@ -125,8 +191,10 @@ def main():
             pixel_direction = get_pixel_direction(
                 x, y, camera, args.width, args.height)
             pixel_color = get_color_for_ray(camera.position, pixel_direction,
-                                           surfaces, materials, lights, scene_settings)
-            image_array[y, x] = pixel_color
+                                            surfaces, materials, lights, scene_settings)
+            image_array[y, x] = [c * 255 for c in pixel_color]
+            print(
+                f"Rendered pixel ({x+1},{y+1})/{args.width}x{args.height}", end='\r')
 
     # Save the output image
     save_image(image_array, args.output_image)

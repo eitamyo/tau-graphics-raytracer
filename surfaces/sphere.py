@@ -26,3 +26,7 @@ class Sphere:
                 return t2
             else:
                 return None
+    
+    def get_normal(self, point):
+        normal = [(point[i] - self.position[i]) / self.radius for i in range(3)]
+        return normal

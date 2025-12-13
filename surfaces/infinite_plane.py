@@ -3,7 +3,7 @@ class InfinitePlane:
         self.normal = normal
         self.offset = offset
         self.material_index = material_index
-        
+    
     def intersect(self, ray_origin, ray_direction):
         # Plane equation: normal · (P) = offset
         # Ray equation: P = ray_origin + t * ray_direction
@@ -22,3 +22,6 @@ class InfinitePlane:
             return t
         else:
             return None # Intersection is behind the ray origin
+        
+    def get_normal(self, point):
+        return self.normal
