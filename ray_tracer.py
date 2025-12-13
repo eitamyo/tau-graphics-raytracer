@@ -11,6 +11,9 @@ from surfaces.infinite_plane import InfinitePlane
 from surfaces.sphere import Sphere
 from vectors import normalize, cross, dot
 
+from multiprocessing import Pool
+import functools
+
 
 def parse_scene_file(file_path):
     objects = []
@@ -164,6 +167,14 @@ def get_color_for_ray(ray_origin, ray_direction, surfaces, materials: list[Mater
 
     return final_color
 
+def render_row(y, width, height, camera, surfaces, materials, lights, settings):
+    row_colors = []
+    for x in range(width):
+        pixel_direction = get_pixel_direction(x, y, camera, width, height)
+        color = get_color_for_ray(camera.position, pixel_direction,
+                                            surfaces, materials, lights, settings)
+        row_colors.append(color)
+    return y, row_colors
 
 def main():
     # python ray_tracer.py scenes/pool.txt output/pool.png −−width 500 −−height 500
@@ -184,17 +195,30 @@ def main():
         obj, (Sphere, InfinitePlane, Cube))]
 
     # Result
+    with Pool() as pool:
+        # Create partial function with fixed arguments
+        worker_func = functools.partial(render_row, width=args.width, height=args.height, 
+                                        camera=camera, surfaces=surfaces, 
+                                        materials=materials, lights=lights, settings=scene_settings)
+        
+        # Map the function over all Y rows
+        results = pool.map(worker_func, range(args.height))
+        
+    # Reassemble image_array from results
     image_array = np.zeros((500, 500, 3))
-    # Rendering loop
-    for y in range(args.height):
-        for x in range(args.width):
-            pixel_direction = get_pixel_direction(
-                x, y, camera, args.width, args.height)
-            pixel_color = get_color_for_ray(camera.position, pixel_direction,
-                                            surfaces, materials, lights, scene_settings)
-            image_array[y, x] = [c * 255 for c in pixel_color]
-            print(
-                f"Rendered pixel ({x+1},{y+1})/{args.width}x{args.height}", end='\r')
+    for y, row_data in results:
+        for x, color in enumerate(row_data):
+            image_array[y, x] = [c * 255 for c in color]
+    # # Rendering loop
+    # for y in range(args.height):
+    #     for x in range(args.width):
+    #         pixel_direction = get_pixel_direction(
+    #             x, y, camera, args.width, args.height)
+    #         pixel_color = get_color_for_ray(camera.position, pixel_direction,
+    #                                         surfaces, materials, lights, scene_settings)
+    #         image_array[y, x] = [c * 255 for c in pixel_color]
+    #         print(
+    #             f"Rendered pixel ({x+1},{y+1})/{args.width}x{args.height}", end='\r')
 
     # Save the output image
     save_image(image_array, args.output_image)
