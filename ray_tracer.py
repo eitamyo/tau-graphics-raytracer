@@ -1,6 +1,7 @@
 import argparse
 from PIL import Image
 import numpy as np
+from tqdm import tqdm
 
 from camera import Camera
 from light import Light
@@ -82,10 +83,11 @@ def get_pixel_direction(x, y, camera, image_width, image_height):
 
 def compute_light_intensity(hit_surface, point, light: Light, light_dir, surfaces, num_shadow_rays):
     # find perpendicular vectors to light_dir
-    up = np.array([0, 1, 0]) if abs(light_dir[1]) < 0.9 else np.array([1, 0, 0])
+    up = np.array([0, 1, 0]) if abs(
+        light_dir[1]) < 0.9 else np.array([1, 0, 0])
     right = np.cross(light_dir, up)
     right = right / np.linalg.norm(right)
-    
+
     # divide into a square grid of cells centered around the light, with size light.radius
     cell_size = (2 * light.radius) / num_shadow_rays
     rays_hit = 0
@@ -96,7 +98,8 @@ def compute_light_intensity(hit_surface, point, light: Light, light_dir, surface
             offset_y = (j + np.random.rand()) * cell_size - light.radius
 
             shadow_ray_origin = light.position + offset_x * right + offset_y * up
-            shadow_ray_dir = (point - shadow_ray_origin) / np.linalg.norm(point - shadow_ray_origin)
+            shadow_ray_dir = (point - shadow_ray_origin) / \
+                np.linalg.norm(point - shadow_ray_origin)
 
             for surface in surfaces:
                 if surface == hit_surface:
@@ -136,8 +139,8 @@ def get_color_for_ray(ray_origin, ray_direction, surfaces, materials: list[Mater
             hit_surface, hit_point, light, light_dir, surfaces, scene_settings.root_number_shadow_rays)
 
         d = max(np.dot(normal, light_dir), 0.0)
-        diffuse_component = [d * \
-            light_intensity * material.diffuse_color[i] * light.color[i] for i in range(3)]
+        diffuse_component = [d *
+                             light_intensity * material.diffuse_color[i] * light.color[i] for i in range(3)]
 
         diffuse_total = [diffuse_total[i] + diffuse_component[i]
                          for i in range(3)]
@@ -147,7 +150,8 @@ def get_color_for_ray(ray_origin, ray_direction, surfaces, materials: list[Mater
         view_dir = ray_origin - hit_point
         view_dir = view_dir / np.linalg.norm(view_dir)
         s = max(np.dot(reflection_dir, view_dir), 0.0) ** material.shininess
-        specular_component = [s * material.specular_color[i] * light.color[i] * light_intensity for i in range(3)]
+        specular_component = [s * material.specular_color[i]
+                              * light.color[i] * light_intensity * light.specular_intensity for i in range(3)]
 
         specural_total = [specural_total[i] +
                           specular_component[i] for i in range(3)]
@@ -162,14 +166,16 @@ def get_color_for_ray(ray_origin, ray_direction, surfaces, materials: list[Mater
 
     return final_color
 
+
 def render_row(y, width, height, camera, surfaces, materials, lights, settings):
     row_colors = []
     for x in range(width):
         pixel_direction = get_pixel_direction(x, y, camera, width, height)
         color = get_color_for_ray(camera.position, pixel_direction,
-                                            surfaces, materials, lights, settings)
+                                  surfaces, materials, lights, settings)
         row_colors.append(color)
     return y, row_colors
+
 
 def main():
     # python ray_tracer.py scenes/pool.txt output/pool.png −−width 500 −−height 500
@@ -189,19 +195,19 @@ def main():
     surfaces = [obj for obj in objects if isinstance(
         obj, (Sphere, InfinitePlane, Cube))]
 
+    image_array = np.zeros((args.height, args.width, 3))
     # Result
     with Pool() as pool:
         # Create partial function with fixed arguments
-        worker_func = functools.partial(render_row, width=args.width, height=args.height, 
-                                        camera=camera, surfaces=surfaces, 
+        worker_func = functools.partial(render_row, width=args.width, height=args.height,
+                                        camera=camera, surfaces=surfaces,
                                         materials=materials, lights=lights, settings=scene_settings)
-        
+
         # Map the function over all Y rows
-        results = pool.map(worker_func, range(args.height))
-        
+        results = pool.map(worker_func, tqdm(range(args.height)))
+
     # Reassemble image_array from results
-    image_array = np.zeros((500, 500, 3))
-    for y, row_data in results:
+    for y, row_data in tqdm(results):
         for x, color in enumerate(row_data):
             image_array[y, x] = [255 if c >= 1 else c * 255 for c in color]
     # # Rendering loop
