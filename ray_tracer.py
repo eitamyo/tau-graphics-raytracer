@@ -203,7 +203,7 @@ def main():
     image_array = np.zeros((500, 500, 3))
     for y, row_data in results:
         for x, color in enumerate(row_data):
-            image_array[y, x] = [c * 255 for c in color]
+            image_array[y, x] = [255 if c >= 1 else c * 255 for c in color]
     # # Rendering loop
     # for y in range(args.height):
     #     for x in range(args.width):
