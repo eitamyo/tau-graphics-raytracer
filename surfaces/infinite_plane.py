@@ -1,22 +1,24 @@
+import numpy as np
+
 class InfinitePlane:
     def __init__(self, normal, offset, material_index):
-        self.normal = normal
+        self.normal = np.array(normal)
         self.offset = offset
         self.material_index = material_index
     
-    def intersect(self, ray_origin, ray_direction):
+    def intersect(self, ray_origin: np.ndarray, ray_direction: np.ndarray):
         # Plane equation: normal · (P) = offset
         # Ray equation: P = ray_origin + t * ray_direction
         # Substitute ray equation into plane equation:
         # normal · (ray_origin + t * ray_direction) = offset
         # => normal · ray_origin + t * (normal · ray_direction) = offset
         # => t = (offset - normal · ray_origin) / (normal · ray_direction)
-        
-        denom = sum([self.normal[i] * ray_direction[i] for i in range(3)])
+
+        denom = np.inner(self.normal, ray_direction)
         if abs(denom) < 1e-6:
             return None  # Ray is parallel to the plane
-        
-        numer = self.offset - sum([self.normal[i] * ray_origin[i] for i in range(3)])
+
+        numer = self.offset - np.inner(self.normal, ray_origin)
         t = numer / denom
         if t >= 0:
             return t

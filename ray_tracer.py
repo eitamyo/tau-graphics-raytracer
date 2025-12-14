@@ -9,7 +9,6 @@ from scene_settings import SceneSettings
 from surfaces.cube import Cube
 from surfaces.infinite_plane import InfinitePlane
 from surfaces.sphere import Sphere
-from vectors import normalize, cross, dot
 
 from multiprocessing import Pool
 import functools
@@ -72,23 +71,21 @@ def get_pixel_direction(x, y, camera, image_width, image_height):
     pixel_scale_x = camera.screen_width / image_width
     pixel_scale_y = screen_height / image_height
 
-    pixel_point = [
-        camera.screen_center[i] + (x_centered * pixel_scale_x * camera.right_vector[i]) - (
-            y_centered * pixel_scale_y * camera.true_up_vector[i])
-        for i in range(3)
-    ]
+    pixel_point = camera.screen_center + (x_centered * pixel_scale_x * camera.right_vector) - (
+        y_centered * pixel_scale_y * camera.true_up_vector)
 
-    ray_direction = normalize(
-        [pixel_point[i] - camera.position[i] for i in range(3)])
+    ray_direction = pixel_point - camera.position
+    ray_direction = ray_direction / np.linalg.norm(ray_direction)
 
     return ray_direction
 
 
 def compute_light_intensity(hit_surface, point, light: Light, light_dir, surfaces, num_shadow_rays):
     # find perpendicular vectors to light_dir
-    up = [0, 1, 0] if abs(light_dir[1]) < 0.9 else [1, 0, 0]
-    right = normalize(cross(light_dir, up))
-
+    up = np.array([0, 1, 0]) if abs(light_dir[1]) < 0.9 else np.array([1, 0, 0])
+    right = np.cross(light_dir, up)
+    right = right / np.linalg.norm(right)
+    
     # divide into a square grid of cells centered around the light, with size light.radius
     cell_size = (2 * light.radius) / num_shadow_rays
     rays_hit = 0
@@ -98,10 +95,8 @@ def compute_light_intensity(hit_surface, point, light: Light, light_dir, surface
             offset_x = (i + np.random.rand()) * cell_size - light.radius
             offset_y = (j + np.random.rand()) * cell_size - light.radius
 
-            shadow_ray_origin = [light.position[i] + offset_x *
-                                 right[i] + offset_y * up[i] for i in range(3)]
-            shadow_ray_dir = normalize(
-                [point[i] - shadow_ray_origin[i] for i in range(3)])
+            shadow_ray_origin = light.position + offset_x * right + offset_y * up
+            shadow_ray_dir = (point - shadow_ray_origin) / np.linalg.norm(point - shadow_ray_origin)
 
             for surface in surfaces:
                 if surface == hit_surface:
@@ -128,30 +123,30 @@ def get_color_for_ray(ray_origin, ray_direction, surfaces, materials: list[Mater
     # Placeholder: return the diffuse color of the first intersected surface
     # TODO: Implement full shading model
     material: Material = materials[hit_surface.material_index - 1]
-    hit_point = [ray_origin[i] + min_t * ray_direction[i] for i in range(3)]
+    hit_point = ray_origin + min_t * ray_direction
     normal = hit_surface.get_normal(hit_point)
 
     diffuse_total = [0.0, 0.0, 0.0]
     specural_total = [0.0, 0.0, 0.0]
     for light in lights:
-        light_dir = normalize([light.position[i] - hit_point[i]
-                              for i in range(3)])
-
+        light_dir = light.position - hit_point
+        light_dir = light_dir / np.linalg.norm(light_dir)
         # Soft shadows
         light_intensity = compute_light_intensity(
             hit_surface, hit_point, light, light_dir, surfaces, scene_settings.root_number_shadow_rays)
 
-        d = max(dot(normal, light_dir), 0.0)
+        d = max(np.dot(normal, light_dir), 0.0)
         diffuse_component = [d * \
             light_intensity * material.diffuse_color[i] * light.color[i] for i in range(3)]
 
         diffuse_total = [diffuse_total[i] + diffuse_component[i]
                          for i in range(3)]
 
-        reflection_dir = normalize(
-            [2 * dot(normal, light_dir) * normal[i] - light_dir[i] for i in range(3)])
-        view_dir = normalize([ray_origin[i] - hit_point[i] for i in range(3)])
-        s = max(dot(reflection_dir, view_dir), 0.0) ** material.shininess
+        reflection_dir = 2 * np.dot(normal, light_dir) * normal - light_dir
+        reflection_dir = reflection_dir / np.linalg.norm(reflection_dir)
+        view_dir = ray_origin - hit_point
+        view_dir = view_dir / np.linalg.norm(view_dir)
+        s = max(np.dot(reflection_dir, view_dir), 0.0) ** material.shininess
         specular_component = [s * material.specular_color[i] * light.color[i] * light_intensity for i in range(3)]
 
         specural_total = [specural_total[i] +

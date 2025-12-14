@@ -1,12 +1,14 @@
+import numpy as np
+
 class Cube:
     def __init__(self, position, scale, material_index):
-        self.position = position
+        self.position = np.array(position)
         self.scale = scale
         self.material_index = material_index
-        self.min_bound = [position[i] - scale / 2 for i in range(3)]
-        self.max_bound = [position[i] + scale / 2 for i in range(3)]
-        
-    def intersect(self, ray_origin, ray_direction):
+        self.min_bound = self.position - scale / 2
+        self.max_bound = self.position + scale / 2
+
+    def intersect(self, ray_origin: np.ndarray, ray_direction: np.ndarray):
         t_near = float('-inf')
         t_far = float('inf')
         
