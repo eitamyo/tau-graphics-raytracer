@@ -116,7 +116,10 @@ def compute_light_intensity(hit_surface, point, light: Light, light_dir, surface
     return (1 - light.shadow_intensity) + light.shadow_intensity * rays_hit / (num_shadow_rays * num_shadow_rays)
 
 
-def get_color_for_ray(ray_origin, ray_direction, surfaces, materials: list[Material], lights: list[Light], scene_settings: SceneSettings):
+def get_color_for_ray(ray_origin, ray_direction, surfaces, materials: list[Material], lights: list[Light], scene_settings: SceneSettings, depth=0):
+    if depth > scene_settings.max_recursions:
+        return scene_settings.background_color
+
     hit_surface = None
     min_t = float('inf')
     for surface in surfaces:
@@ -159,13 +162,30 @@ def get_color_for_ray(ray_origin, ray_direction, surfaces, materials: list[Mater
         specural_total = [specural_total[i] +
                           specular_component[i] for i in range(3)]
 
+    # reflection
+    reflection_contrib = [0.0, 0.0, 0.0]
+    if any(material.reflection_color):
+        reflection_origin = hit_point + 1e-4 * normal
+        reflection_dir = ray_direction - 2 * \
+            np.dot(ray_direction, normal) * normal
+        reflecion_color = get_color_for_ray(reflection_origin, reflection_dir,
+                                            surfaces, materials, lights, scene_settings, depth + 1)
+        reflection_contrib = [reflecion_color[i] *
+                              material.reflection_color[i] for i in range(3)]
+
+    transparency_background = [0.0, 0.0, 0.0]
+    if material.transparency > 0:
+        transparency_origin = hit_point + 1e-4 * ray_direction
+        transparency_dir = ray_direction
+        transparency_background = get_color_for_ray(transparency_origin, transparency_dir,
+                                                    surfaces, materials, lights, scene_settings, depth + 1)
     final_color = [0.0, 0.0, 0.0]
     for i in range(3):
         surface_color_i = (diffuse_total[i] + specural_total[i]) * \
             (1-material.transparency)
-        final_color[i] = scene_settings.background_color[i] * \
+        final_color[i] = transparency_background[i] * \
             material.transparency + surface_color_i + \
-            material.reflection_color[i]
+            reflection_contrib[i]
 
     return final_color
 
