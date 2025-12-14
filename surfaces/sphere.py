@@ -15,8 +15,8 @@ class Sphere:
         # At^2 + Bt + C = 0
         oc = ray_origin - self.position
         A = 1  # ray_direction is normalized
-        B = 2 * np.inner(oc, ray_direction)
-        C = np.inner(oc, oc) - self.radius ** 2
+        B = 2 * np.dot(oc, ray_direction)
+        C = np.dot(oc, oc) - self.radius ** 2
         discriminant = B ** 2 - 4 * A * C
         if discriminant < 0:
             return None

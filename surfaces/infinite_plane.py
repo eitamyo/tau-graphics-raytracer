@@ -14,11 +14,11 @@ class InfinitePlane:
         # => normal · ray_origin + t * (normal · ray_direction) = offset
         # => t = (offset - normal · ray_origin) / (normal · ray_direction)
 
-        denom = np.inner(self.normal, ray_direction)
+        denom = np.dot(self.normal, ray_direction)
         if abs(denom) < 1e-6:
             return None  # Ray is parallel to the plane
 
-        numer = self.offset - np.inner(self.normal, ray_origin)
+        numer = self.offset - np.dot(self.normal, ray_origin)
         t = numer / denom
         if t >= 0:
             return t

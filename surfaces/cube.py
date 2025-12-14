@@ -36,11 +36,11 @@ class Cube:
         # Determine which face of the cube the point is on
         for i in range(3):
             if abs(point[i] - self.min_bound[i]) < 1e-6:
-                normal = [0, 0, 0]
+                normal = np.array([0, 0, 0])
                 normal[i] = -1
                 return normal
             elif abs(point[i] - self.max_bound[i]) < 1e-6:
-                normal = [0, 0, 0]
+                normal = np.array([0, 0, 0])
                 normal[i] = 1
                 return normal
         return None  # Should not reach here if point is on the surface
