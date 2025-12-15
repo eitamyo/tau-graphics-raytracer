@@ -99,13 +99,13 @@ def compute_light_intensity(hit_surface, point, light: Light, light_dir, surface
     right = right / np.linalg.norm(right)
 
     # divide into a square grid of cells centered around the light, with size light.radius
-    cell_size = (2 * light.radius) / num_shadow_rays
+    cell_size = light.radius / num_shadow_rays
     rays_hit = 0
     for i in range(num_shadow_rays):
         for j in range(num_shadow_rays):
             # select a random point in the cell
-            offset_x = (i + np.random.rand()) * cell_size - light.radius
-            offset_y = (j + np.random.rand()) * cell_size - light.radius
+            offset_x = (i + np.random.rand()) * cell_size - (light.radius / 2)
+            offset_y = (j + np.random.rand()) * cell_size - (light.radius / 2)
 
             shadow_ray_origin = light.position + offset_x * right + offset_y * up
             shadow_ray_dir = (point - shadow_ray_origin) / \
