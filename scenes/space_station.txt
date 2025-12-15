@@ -1,0 +1,58 @@
+# Space Station Interior - Sci-fi environment
+cam		0	0	12	0	0	0	0	1	0	1	2
+
+set		0	0	0	1		5
+
+# Materials
+# Mat 1 (White metal panels):
+mtl		0.8	0.8	0.85	0.6	0.6	0.65	0.15	0.15	0.17	70	0
+# Mat 2 (Blue metal):
+mtl		0.2	0.3	0.5	0.5	0.6	0.8	0.1	0.15	0.25	80	0
+# Mat 3 (Warning yellow):
+mtl		0.9	0.8	0.1	0.7	0.6	0.3	0.05	0.04	0.01	50	0
+# Mat 4 (Red alert):
+mtl		0.8	0.1	0.1	0.7	0.3	0.3	0.05	0.01	0.01	50	0
+# Mat 5 (Polished floor):
+mtl		0.15	0.15	0.18	0.5	0.5	0.55	0.5	0.5	0.55	150	0
+# Mat 6 (Glass viewport):
+mtl		0.05	0.05	0.1	1	1	1	0.2	0.2	0.3	120	0.85
+# Mat 7 (Green screens):
+mtl		0.1	0.7	0.3	0.5	0.9	0.6	0.05	0.15	0.08	30	0
+
+# Floor and ceiling
+pln		0	1	0	-2	5
+pln		0	-1	0	-3	1
+
+# Wall panels (cubes)
+box		-4	0.5	-3	1	1
+box		4	0.5	-3	1	1
+box		-4	0.5	3	1	2
+box		4	0.5	3	1	2
+
+# Central console/equipment
+box		0	-1	0	2	2
+box		-1.5	-0.5	0	0.8	7
+box		1.5	-0.5	0	0.8	7
+
+# Viewports (transparent spheres)
+sph		-3	1	-1	0.6	6
+sph		3	1	-1	0.6	6
+
+# Warning lights/indicators
+sph		-2	1.5	2	0.2	3
+sph		-1	1.5	2	0.2	4
+sph		0	1.5	2	0.2	3
+sph		1	1.5	2	0.2	4
+sph		2	1.5	2	0.2	3
+
+# Equipment spheres
+sph		-2.5	-0.5	-2	0.5	2
+sph		2.5	-0.5	-2	0.5	2
+
+# Overhead lights (white/cool)
+lgt		-3	2.5	0	0.9	0.95	1	1	0.3	0.5
+lgt		3	2.5	0	0.9	0.95	1	1	0.3	0.5
+lgt		0	2.5	-2	1	1	1	1	0.4	0.5
+# Accent lighting (colored)
+lgt		-2	0	2	0.2	0.8	0.4	0.6	0.5	0.3
+lgt		2	0	2	0.8	0.3	0.2	0.6	0.5	0.3
