@@ -82,6 +82,16 @@ def get_pixel_direction(x, y, camera, image_width, image_height):
 
 
 def compute_light_intensity(hit_surface, point, light: Light, light_dir, surfaces, num_shadow_rays):
+    if num_shadow_rays == 1:
+        # Fast path for hard shadows
+        shadow_ray_dir = light_dir
+        for surface in surfaces:
+            if surface == hit_surface:
+                continue
+            t = surface.intersect(point + 1e-4 * light_dir, shadow_ray_dir)
+            if t is not None and t > 0:
+                return 1 - light.shadow_intensity
+        return 1.0
     # find perpendicular vectors to light_dir
     up = np.array([0, 1, 0]) if abs(
         light_dir[1]) < 0.9 else np.array([1, 0, 0])
@@ -135,8 +145,8 @@ def get_color_for_ray(ray_origin, ray_direction, surfaces, materials: list[Mater
     hit_point = ray_origin + min_t * ray_direction
     normal = hit_surface.get_normal(hit_point)
 
-    diffuse_total = [0.0, 0.0, 0.0]
-    specural_total = [0.0, 0.0, 0.0]
+    diffuse_total = np.zeros(3)
+    specural_total = np.zeros(3)
     for light in lights:
         light_dir = light.position - hit_point
         light_dir = light_dir / np.linalg.norm(light_dir)
@@ -145,47 +155,36 @@ def get_color_for_ray(ray_origin, ray_direction, surfaces, materials: list[Mater
             hit_surface, hit_point, light, light_dir, surfaces, scene_settings.root_number_shadow_rays)
 
         d = max(np.dot(normal, light_dir), 0.0)
-        diffuse_component = [d *
-                             light_intensity * material.diffuse_color[i] * light.color[i] for i in range(3)]
-
-        diffuse_total = [diffuse_total[i] + diffuse_component[i]
-                         for i in range(3)]
+        diffuse_component = d * light_intensity * material.diffuse_color * light.color
+        diffuse_total = diffuse_total + diffuse_component
 
         reflection_dir = 2 * np.dot(normal, light_dir) * normal - light_dir
         reflection_dir = reflection_dir / np.linalg.norm(reflection_dir)
         view_dir = ray_origin - hit_point
         view_dir = view_dir / np.linalg.norm(view_dir)
         s = max(np.dot(reflection_dir, view_dir), 0.0) ** material.shininess
-        specular_component = [s * material.specular_color[i]
-                              * light.color[i] * light_intensity * light.specular_intensity for i in range(3)]
-
-        specural_total = [specural_total[i] +
-                          specular_component[i] for i in range(3)]
-
+        specular_component = s * material.specular_color * light.color * light_intensity * light.specular_intensity
+        specural_total = specural_total + specular_component
+        
     # reflection
-    reflection_contrib = [0.0, 0.0, 0.0]
+    reflection_contrib = np.zeros(3)
     if any(material.reflection_color):
         reflection_origin = hit_point + 1e-4 * normal
         reflection_dir = ray_direction - 2 * \
             np.dot(ray_direction, normal) * normal
         reflecion_color = get_color_for_ray(reflection_origin, reflection_dir,
                                             surfaces, materials, lights, scene_settings, depth + 1)
-        reflection_contrib = [reflecion_color[i] *
-                              material.reflection_color[i] for i in range(3)]
+        reflection_contrib = reflecion_color * material.reflection_color
 
-    transparency_background = [0.0, 0.0, 0.0]
+    transparency_background = np.zeros(3)
     if material.transparency > 0:
         transparency_origin = hit_point + 1e-4 * ray_direction
         transparency_dir = ray_direction
         transparency_background = get_color_for_ray(transparency_origin, transparency_dir,
                                                     surfaces, materials, lights, scene_settings, depth + 1)
-    final_color = [0.0, 0.0, 0.0]
-    for i in range(3):
-        surface_color_i = (diffuse_total[i] + specural_total[i]) * \
-            (1-material.transparency)
-        final_color[i] = transparency_background[i] * \
-            material.transparency + surface_color_i + \
-            reflection_contrib[i]
+    
+    surface_color = (diffuse_total + specural_total) * (1 - material.transparency)
+    final_color = transparency_background * material.transparency + surface_color + reflection_contrib
 
     return final_color
 
