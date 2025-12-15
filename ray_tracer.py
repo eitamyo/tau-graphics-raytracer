@@ -112,7 +112,7 @@ def compute_light_intensity(hit_surface, point, light: Light, light_dir, surface
                 np.linalg.norm(point - shadow_ray_origin)
 
             hit = False
-            max_t = hit_surface.intersect(shadow_ray_origin, shadow_ray_dir)
+            max_t = np.linalg.norm(point - shadow_ray_origin)
             for surface in surfaces:
                 if surface == hit_surface:
                     continue
