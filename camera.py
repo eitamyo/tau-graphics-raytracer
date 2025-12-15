@@ -5,11 +5,11 @@ def get_forward_vector(cam):
     return forward / np.linalg.norm(forward)
 
 def get_right_vector(cam):
-    right = np.cross(cam.forward_vector, cam.up_vector)
+    right = np.cross(cam.up_vector, cam.forward_vector)
     return right / np.linalg.norm(right)
 
 def get_true_up_vector(cam):
-    up = np.cross(cam.right_vector, cam.forward_vector)
+    up = np.cross(cam.forward_vector, cam.right_vector)
     return up / np.linalg.norm(up)
 
 def get_screen_center(cam):
