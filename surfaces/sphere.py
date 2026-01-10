@@ -1,7 +1,7 @@
-from numba import njit
+# from numba import njit
 import numpy as np
 
-@njit
+# @njit
 def intersect_sphere(ray_origin: np.ndarray, ray_direction: np.ndarray, sphere_pos: np.ndarray, sphere_radius: float):
     # ||(ray_origin + t*ray_direction - pos)||^2 = radius^2
     # <=> (ray_origin + t*ray_direction - pos)·(ray_origin + t*ray_direction - pos) = radius^2

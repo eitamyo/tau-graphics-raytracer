@@ -1,7 +1,7 @@
 import numpy as np
-from numba import njit
+# from numba import njit
 
-@njit
+# @njit
 def intersect_plane(normal, offset, ray_origin: np.ndarray, ray_direction: np.ndarray):
     # Plane equation: normal · (P) = offset
     # Ray equation: P = ray_origin + t * ray_direction
